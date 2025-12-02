@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -12,193 +12,188 @@ import {
   LineElement
 } from 'chart.js';
 import '../styles/Dashboard.css';
-import MapPage from './MapPage';
+import DataMap from './DataMap';
 import api from '../services/api';
+import { BsChatDots } from 'react-icons/bs'; 
+import Chatbot from '../components/Chatbot'; 
 
-// Registrar os componentes do ChartJS
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement);
 
-// Função auxiliar para formatar os meses em Português
 const formatMonth = (monthStr) => {
-    const [year, month] = monthStr.split('-');
-    const date = new Date(year, month - 1);
-    return date.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+  if (!monthStr) return '';
+  const [year, month] = monthStr.split('-');
+  const date = new Date(year, month - 1);
+  return date.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
 };
 
 function Dashboard() {
-  // Estado para armazenar todos os dados brutos do dashboard
   const [dashboardData, setDashboardData] = useState(null);
+  const [acoes, setAcoes] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
-  // Estados para os dados já formatados dos gráficos
   const [tasksStatusChart, setTasksStatusChart] = useState({ datasets: [] });
   const [responsibleChart, setResponsibleChart] = useState({ datasets: [] });
-  const [progressChart, setProgressChart] = useState({ datasets: [] }); // <-- NOVO ESTADO
+  const [progressChart, setProgressChart] = useState({ datasets: [] });
   const [sexChart, setSexChart] = useState({ datasets: [] });
   const [ageChart, setAgeChart] = useState({ datasets: [] });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await api.get('/dashboard/stats');
-        const data = response.data;
-        setDashboardData(data);
+  const statusColorMap = {
+    'A Fazer': '#0d6efd',
+    'Em Andamento': '#c29306',
+    'Concluído': '#28a745',
+  };
 
-        // --- Transformação dos dados para os gráficos ---
-
-        if (data.tasksByStatus) {
-          setTasksStatusChart({
-            labels: data.tasksByStatus.map(item => item.status),
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Removemos a chamada do summary
+      const [statsResponse, acoesResponse] = await Promise.all([
+        api.get('/dashboard/stats'),
+        api.get('/acoes')
+      ]);
+      
+      setDashboardData(statsResponse.data);
+      setAcoes(acoesResponse.data);
+      
+      if (statsResponse.data.tasksByStatus) {
+        const labels = statsResponse.data.tasksByStatus.map(item => item.status);
+        const data = statsResponse.data.tasksByStatus.map(item => item.count);
+        const backgroundColor = labels.map(label => statusColorMap[label] || '#CCCCCC');
+        setTasksStatusChart({
+          labels: labels,
+          datasets: [{ data: data, backgroundColor: backgroundColor }]
+        });
+      }
+      if (statsResponse.data.tasksByResponsible) {
+        setResponsibleChart({
+          labels: statsResponse.data.tasksByResponsible.map(item => item.responsible),
+          datasets: [{
+            label: 'Tarefas Atribuídas',
+            data: statsResponse.data.tasksByResponsible.map(item => item.count),
+            backgroundColor: '#4148CF'
+          }]
+        });
+      }
+      if (statsResponse.data.tasksProgress) {
+          setProgressChart({
+            labels: statsResponse.data.tasksProgress.map(item => formatMonth(item.month)),
+            datasets: [
+              { label: 'Tarefas Concluídas', data: statsResponse.data.tasksProgress.map(item => item.tarefas_concluidas), backgroundColor: '#2a9d8f' },
+              { label: 'Novas Tarefas', data: statsResponse.data.tasksProgress.map(item => item.novas_tarefas), backgroundColor: '#ff5722' }
+            ]
+          });
+      }
+      if (statsResponse.data.distributionBySex) {
+          setSexChart({
+            labels: statsResponse.data.distributionBySex.map(item => item.sexo),
             datasets: [{
-              data: data.tasksByStatus.map(item => item.count),
-              backgroundColor: ['#C9552C', '#2F7F83', '#246E9E']
+              data: statsResponse.data.distributionBySex.map(item => item.count),
+              backgroundColor: ['#009DFF', '#FF5BC8']
             }]
           });
-        }
-        
-        if (data.tasksByResponsible) {
-          setResponsibleChart({
-            labels: data.tasksByResponsible.map(item => item.responsible),
+      }
+      if (statsResponse.data.distributionByAge) {
+          setAgeChart({
+            labels: statsResponse.data.distributionByAge.map(item => item.age_group),
             datasets: [{
-              label: 'Tarefas Atribuídas',
-              data: data.tasksByResponsible.map(item => item.count),
+              label: 'Distribuição por Idade',
+              data: statsResponse.data.distributionByAge.map(item => item.count),
               backgroundColor: '#4148CF'
             }]
           });
-        }
-
-        // GRÁFICO DE PROGRESSO DE TAREFAS
-        if (data.tasksProgress) {
-            setProgressChart({
-                labels: data.tasksProgress.map(item => formatMonth(item.month)),
-                datasets: [
-                    { label: 'Tarefas Concluídas', data: data.tasksProgress.map(item => item.tarefas_concluidas), backgroundColor: '#2a9d8f' },
-                    { label: 'Novas Tarefas', data: data.tasksProgress.map(item => item.novas_tarefas), backgroundColor: '#ff5722' }
-                ]
-            });
-        }
-
-        if (data.distributionBySex) {
-            setSexChart({
-                labels: data.distributionBySex.map(item => item.sexo),
-                datasets: [{
-                    data: data.distributionBySex.map(item => item.count),
-                    backgroundColor: ['#009DFF', '#FF5BC8']
-                }]
-            });
-        }
-
-        if (data.distributionByAge) {
-            setAgeChart({
-                labels: data.distributionByAge.map(item => item.age_group),
-                datasets: [{
-                    label: 'Distribuição por Idade',
-                    data: data.distributionByAge.map(item => item.count),
-                    backgroundColor: '#4148CF'
-                }]
-            });
-        }
-
-      } catch (err) {
-        setError('Falha ao carregar dados do dashboard.');
-        console.error(err);
-      } finally {
-        setLoading(false);
       }
-    };
-    fetchData();
+
+    } catch (err) {
+      setError('Falha ao carregar dados do dashboard.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+    window.addEventListener('focus', fetchData);
+    return () => {
+      window.removeEventListener('focus', fetchData);
+    };
+  }, [fetchData]);
 
   const chartOptions = { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'top' } } };
   const doughnutOptions = { ...chartOptions, scales: {}, cutout: '70%' };
 
-  if (loading) return <p>Carregando dashboard...</p>;
-  if (error) return <p style={{ color: 'red' }}>{error}</p>;
-  if (!dashboardData) return <p>Não há dados para exibir.</p>;
+  if (loading) return <p style={{padding: '20px'}}>Carregando dashboard...</p>;
+  if (error) return <p style={{ color: 'red', padding: '20px' }}>{error}</p>;
+  if (!dashboardData) return <p style={{padding: '20px'}}>Não há dados para exibir.</p>;
 
   return (
     <div className="dashboard-page">
-      <h2 className="page-title">Dashboard de Gestão Política</h2>
-      <p className="page-subtitle">Visão geral e desempenho da equipe.</p>
       
-      {/* SEÇÃO DE TAREFAS */}
+      <div className="dashboard-header">
+        <div>
+          <h2 className="page-title">Dashboard de Gestão Política</h2>
+          <p className="page-subtitle">Visão geral e desempenho da equipe.</p>
+        </div>
+        <button className="chatbot-button" onClick={() => setIsChatbotOpen(true)}>
+          <BsChatDots size={18} />
+          <span>Assistente Virtual</span>
+        </button>
+      </div>
+      
       <div className="section-container">
         <div className="charts-grid">
-          <div className="chart-card">
-            <h4>Status das Tarefas</h4>
-            <Doughnut data={tasksStatusChart} options={doughnutOptions} />
-          </div>
-          <div className="chart-card">
-            <h4>Tarefas por Responsável</h4>
-            <Bar data={responsibleChart} options={chartOptions} />
-          </div>
-          <div className="chart-card">
-            <h4>Progresso de Tarefas</h4>
-            {/* GRÁFICO REAL RENDERIZADO */}
-            <Bar data={progressChart} options={chartOptions} />
-          </div>
+          <div className="chart-card"><h4>Status das Tarefas</h4><Doughnut data={tasksStatusChart} options={doughnutOptions} /></div>
+          <div className="chart-card"><h4>Tarefas por Responsável</h4><Bar data={responsibleChart} options={chartOptions} /></div>
+          <div className="chart-card"><h4>Progresso de Tarefas</h4><Bar data={progressChart} options={chartOptions} /></div>
         </div>
       </div>
       
       <div className="section-container">
         <div className="stats-grid">
-          <div className="card">
-            <h4>Total de Tarefas</h4>
-            <p>{dashboardData.totalTarefas}</p>
-          </div>
-          <div className="card">
-            <h4>Usuários Ativos</h4>
-            <p>{dashboardData.totalUsuarios}</p>
-          </div>
-          <div className="card">
-            <h4>Ações Concluídas</h4>
-            <p>{dashboardData.totalAcoesConcluidas}</p>
-          </div>
+          <div className="card"><h4>Total de Tarefas</h4><p>{dashboardData.totalTarefas}</p></div>
+          <div className="card"><h4>Usuários Ativos</h4><p>{dashboardData.totalUsuarios}</p></div>
+          <div className="card"><h4>Ações Concluídas</h4><p>{dashboardData.totalAcoesConcluidas}</p></div>
         </div>
       </div>
 
-      {/* SEÇÃO DO MAPA */}
       <div className="section-container">
-        <MapPage />
+        <div className="map-wrapper-dashboard">
+          <h3>Distribuição Geográfica de Ações</h3>
+          <DataMap 
+            data={acoes}
+            titleField="titulo"
+            dateField="data"
+            entityName="ações"
+          />
+        </div>
       </div>
 
-      {/* SEÇÃO DEMOGRÁFICA */}
       <div className="section-container">
         <div className="demographics-grid">
-          <div className="chart-card">
-            <h4>Distribuição por Sexo</h4>
-            <Doughnut data={sexChart} options={doughnutOptions} />
-          </div>
-          <div className="chart-card">
-            <h4>Distribuição por Idade</h4>
-            <Bar data={ageChart} options={chartOptions} />
-          </div>
+          <div className="chart-card"><h4>Distribuição por Sexo</h4><Doughnut data={sexChart} options={doughnutOptions} /></div>
+          <div className="chart-card"><h4>Distribuição por Idade</h4><Bar data={ageChart} options={chartOptions} /></div>
         </div>
       </div>
       
-      {/* SEÇÃO DE TABELA POR BAIRRO */}
       <div className="section-container">
         <div className="table-card">
           <h3>Pessoas por Bairro</h3>
           <table className="neighborhood-table">
-            <thead>
-              <tr>
-                <th>BAIRRO</th>
-                <th>QUANTIDADE</th>
-              </tr>
-            </thead>
+            <thead><tr><th>BAIRRO</th><th>QUANTIDADE</th></tr></thead>
             <tbody>
               {dashboardData.peopleByNeighborhood.map((row, index) => (
-                <tr key={index}>
-                  <td>{row.bairro}</td>
-                  <td>{row.count}</td>
-                </tr>
+                <tr key={index}><td>{row.bairro}</td><td>{row.count}</td></tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {isChatbotOpen && <Chatbot onClose={() => setIsChatbotOpen(false)} />}
+      
     </div>
   );
 }

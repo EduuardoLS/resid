@@ -1,64 +1,135 @@
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
+/* frontend/src/styles/Actions.css */
 
-.modal-content {
-  background-color: white;
+.page-container {
   padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  width: 400px;
+}
+
+.actions-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
 }
 
-.modal-content h3 {
-  margin-top: 0;
-  color: #264653;
+.header-title h2 {
+  margin: 0;
+  font-size: 1.8rem;
 }
 
-.modal-content label {
-  margin-top: 1rem;
-  color: #555;
-  font-weight: bold;
-}
-
-.modal-content input {
-  padding: 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-}
-
-.modal-buttons {
+.header-actions {
   display: flex;
-  justify-content: flex-end;
   gap: 1rem;
-  margin-top: 2rem;
 }
 
-.create-btn, .cancel-btn {
-  padding: 0.75rem 1.5rem;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
+.filter-input {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 0.9rem;
 }
 
-.create-btn {
-  background-color: #2a9d8f;
+.add-button {
+  background-color: #007bff;
   color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.cancel-btn {
-  background-color: #ddd;
-  color: #333;
+.add-button:hover {
+  background-color: #0056b3;
+}
+
+.table-container {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  overflow: hidden; /* Garante que a borda arredondada funcione */
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th, .data-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.data-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #666;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* --- ESTILOS DOS ÍCONES CORRIGIDOS ---
+As regras abaixo substituem o seu '.icon-btn' antigo
+*/
+
+.action-icon-button {
+  background-color: #f8f9fa; /* Fundo cinza claro (padrão) */
+  border: 1px solid #dee2e6; /* Borda cinza suave */
+  border-radius: 6px; /* Cantos arredondados */
+  padding: 0.5rem; /* Preenchimento para dar "corpo" ao botão */
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex; /* Para centralizar o ícone */
+  align-items: center;
+  justify-content: center;
+  width: 38px; /* Largura e altura fixas */
+  height: 38px;
+  color: #495057; /* Cor do ícone (cinza escuro) */
+}
+
+/* Efeito ao passar o mouse (para qualquer ícone) */
+.action-icon-button:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+}
+
+/* Botão de Editar (Aparência padrão) */
+.action-icon-button.edit-btn {
+  color: #007bff; /* Ícone azul */
+}
+
+/* Botão de Editar (QUANDO ATIVO) */
+.action-icon-button.edit-btn.active {
+  background-color: #007bff; /* Fundo azul */
+  border-color: #007bff; /* Borda azul */
+  color: white; /* Ícone branco */
+  box-shadow: 0 0 5px rgba(0,123,255,0.5); /* Brilho azul */
+}
+
+/* Botão de Deletar (Aparência padrão) */
+.action-icon-button.delete-btn {
+  color: #dc3545; /* Ícone vermelho */
+}
+
+/* Efeito ao passar o mouse no botão de deletar */
+.action-icon-button.delete-btn:hover {
+  background-color: #dc3545; /* Fundo vermelho */
+  border-color: #dc3545; /* Borda vermelha */
+  color: white; /* Ícone branco */
+}
+
+/* Ajusta o tamanho do ícone dentro do botão */
+.action-icon-button i {
+  font-size: 1rem;
+  line-height: 1;
 }
